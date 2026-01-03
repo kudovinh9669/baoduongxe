@@ -3,235 +3,349 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Honda Vision Log 🛵</title>
+    <title>Honda Vision Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root {
             --bg-dark: #121212;
             --card-dark: #1e1e1e;
             --text-light: #e0e0e0;
-            --text-muted: #aaaaaa; /* Màu chữ mờ sáng hơn */
             --accent: #d32f2f; /* Đỏ Sport */
+            --fuel: #00897b;   /* Xanh xăng dầu */
             --input-bg: #2d2d2d;
             --input-border: #444;
         }
         
-        body { background-color: var(--bg-dark); color: var(--text-light); font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-light); font-family: 'Segoe UI', sans-serif; padding-bottom: 80px; }
         
-        /* Card thông tin xe */
+        /* CARD THÔNG TIN XE */
         .bike-card {
             background: linear-gradient(145deg, #2a2a2a, #1e1e1e);
             border-left: 5px solid var(--accent);
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 12px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
-
-        /* Hộp hiển thị ODO */
         .odo-box {
-            background-color: #000;
-            color: #0f0; 
-            font-family: 'Courier New', Courier, monospace;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            border: 1px solid #333;
+            background: black; color: #0f0; 
+            font-family: monospace; padding: 5px 12px; 
+            border-radius: 6px; font-weight: bold; letter-spacing: 2px; border: 1px solid #333;
         }
 
-        /* Tùy chỉnh ô nhập liệu (Input) để sửa lỗi màu chữ */
+        /* ALERT CARD */
+        .alert-card {
+            background-color: var(--card-dark);
+            border-radius: 12px; padding: 15px; margin-bottom: 20px;
+        }
+        .progress { height: 8px; background-color: #333; margin-top: 8px; }
+
+        /* TAB STYLE */
+        .nav-pills .nav-link { color: #888; border-radius: 20px; padding: 8px 20px; cursor: pointer; }
+        /* Tab Active màu Đỏ (Mặc định) */
+        .nav-pills .nav-link.active { background-color: var(--accent); color: white; font-weight: bold; }
+        /* Tab Active màu Xanh (Cho xăng) */
+        .nav-pills .nav-link.active-fuel { background-color: var(--fuel) !important; color: white; font-weight: bold; }
+
+        /* BUTTON STYLE (QUAN TRỌNG: Tách 2 class màu riêng) */
+        .btn-service {
+            background-color: var(--accent); color: white; font-weight: bold; border: none;
+        }
+        .btn-service:hover { background-color: #b71c1c; color: white; }
+
+        .btn-fuel {
+            background-color: var(--fuel); color: white; font-weight: bold; border: none;
+        }
+        .btn-fuel:hover { background-color: #00695c; color: white; }
+
+        /* FORM INPUTS */
         .form-control, .form-select {
-            background-color: var(--input-bg);
-            border: 1px solid var(--input-border);
-            color: #ffffff !important; /* Ép chữ màu trắng */
+            background-color: var(--input-bg); border: 1px solid var(--input-border); color: white !important;
         }
-        
-        /* Màu chữ khi bấm vào nhập */
         .form-control:focus, .form-select:focus {
-            background-color: #383838;
-            color: #ffffff !important;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 0.25rem rgba(211, 47, 47, 0.25);
+            background-color: #333; border-color: #666; color: white !important; box-shadow: none;
         }
+        .form-control::placeholder { color: #888 !important; opacity: 1; }
+        .text-label { color: #aaa; font-size: 0.85rem; margin-bottom: 5px; display: block; }
 
-        /* Màu chữ gợi ý (Placeholder) */
-        .form-control::placeholder {
-            color: #888 !important; 
-            opacity: 1;
-        }
-
-        /* Chữ tiêu đề nhỏ (Label) */
-        .text-label {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            margin-bottom: 5px;
-            display: block;
-        }
-
+        /* HISTORY */
         .history-item {
             background-color: var(--card-dark);
-            border-bottom: 1px solid #333;
-            padding: 15px;
-            transition: 0.2s;
+            border-bottom: 1px solid #333; padding: 15px;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .history-item:first-child { border-top-left-radius: 10px; border-top-right-radius: 10px; }
-        .history-item:last-child { border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; border-bottom: none; }
+        .history-item:first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
+        .history-item:last-child { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; border-bottom: none; }
         
-        .btn-accent {
-            background-color: var(--accent);
-            color: white;
-            font-weight: bold;
-            border: none;
-        }
-        .btn-accent:hover { background-color: #b71c1c; color: white; }
-
-        .service-icon {
-            width: 40px; height: 40px;
-            background: #333;
-            border-radius: 50%;
+        .icon-box {
+            width: 45px; height: 45px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            margin-right: 15px;
-            font-size: 20px;
+            font-size: 20px; margin-right: 15px; flex-shrink: 0;
         }
-        
-        /* Chỉnh icon lịch/mũi tên sang màu sáng */
         ::-webkit-calendar-picker-indicator { filter: invert(1); }
     </style>
 </head>
 <body>
 
-<div class="container py-4" style="max-width: 600px;">
+<div class="container py-3" style="max-width: 600px;">
     
     <div class="bike-card d-flex justify-content-between align-items-center">
         <div>
-            <h3 class="m-0 fw-bold">Honda Vision Sport</h3>
-            <small style="color: #aaa;">Biển số: 29AC-65704</small>
+            <h4 class="m-0 fw-bold">Honda Vision Sport</h4>
+            <small style="color: #aaa;">29AC-65704</small>
         </div>
         <div class="text-end">
-            <small class="d-block mb-1" style="color: #aaa;">ODO Tổng (KM)</small>
-            <span class="odo-box" id="totalOdo">00000</span>
+            <small class="d-block mb-1" style="color: #aaa;">ODO Tổng</small>
+            <span class="odo-box" id="totalOdo">0</span>
         </div>
     </div>
 
-    <div class="card bg-dark text-white border-secondary mb-4">
-        <div class="card-header border-secondary fw-bold">🛠️ Ghi Nhật Ký Mới</div>
+    <div class="alert-card">
+        <h6 class="fw-bold mb-3">🚦 Tình trạng bảo dưỡng</h6>
+        <div class="mb-3">
+            <div class="d-flex justify-content-between small">
+                <span>🛢️ Nhớt máy (1.500km)</span><span id="oilStatus">...</span>
+            </div>
+            <div class="progress"><div class="progress-bar bg-success" id="oilBar" style="width: 0%"></div></div>
+        </div>
+        <div class="mb-2">
+            <div class="d-flex justify-content-between small">
+                <span>⚙️ Nhớt Láp (5.000km)</span><span id="gearStatus">...</span>
+            </div>
+            <div class="progress"><div class="progress-bar bg-info" id="gearBar" style="width: 0%"></div></div>
+        </div>
+    </div>
+
+    <div class="card bg-dark border-secondary mb-4">
+        <div class="card-header border-secondary p-2">
+            <ul class="nav nav-pills nav-fill" id="pills-tab">
+                <li class="nav-item">
+                    <button class="nav-link active" id="tab-service" onclick="switchMode('service')">🛠️ Bảo Dưỡng</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-fuel" onclick="switchMode('fuel')">⛽ Đổ Xăng</button>
+                </li>
+            </ul>
+        </div>
+        
         <div class="card-body">
-            <form id="serviceForm">
-                <div class="row g-2">
-                    <div class="col-6 mb-3">
-                        <span class="text-label">Ngày thực hiện</span>
+            <form id="mainForm">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <span class="text-label">Ngày</span>
                         <input type="date" class="form-control" id="date" required>
                     </div>
-                    <div class="col-6 mb-3">
-                        <span class="text-label">Số ODO hiện tại (Km)</span>
+                    <div class="col-6">
+                        <span class="text-label">ODO Hiện tại</span>
                         <input type="number" class="form-control" id="odo" placeholder="Vd: 5000" required>
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <span class="text-label">Hạng mục làm</span>
-                    <select class="form-select" id="serviceType">
-                        <option value="🛢️ Thay nhớt máy">🛢️ Thay nhớt máy</option>
-                        <option value="⚙️ Thay nhớt láp">⚙️ Thay nhớt láp (số)</option>
-                        <option value="🫧 Vệ sinh nồi">🫧 Vệ sinh nồi</option>
-                        <option value="🌬️ Lọc gió">🌬️ Thay lọc gió</option>
-                        <option value="🛑 Thay má phanh">🛑 Thay má phanh</option>
-                        <option value="🌊 Nước làm mát">🌊 Nước làm mát</option>
-                        <option value="🛠️ Sửa chữa khác">🛠️ Sửa chữa khác</option>
-                    </select>
-                </div>
-                
-                <div class="mb-3">
-                    <input type="text" class="form-control" id="note" placeholder="Ghi chú (Vd: Nhớt hãng, Lốp zin...)">
+                <div id="service-fields">
+                    <div class="mb-3">
+                        <span class="text-label">Hạng mục</span>
+                        <select class="form-select" id="serviceType">
+                            <option value="🛢️ Thay nhớt máy">🛢️ Thay nhớt máy</option>
+                            <option value="⚙️ Thay nhớt láp">⚙️ Thay nhớt láp</option>
+                            <option value="🛑 Thay má phanh">🛑 Thay má phanh</option>
+                            <option value="🫧 Vệ sinh nồi">🫧 Vệ sinh nồi</option>
+                            <option value="🌬️ Lọc gió">🌬️ Thay lọc gió</option>
+                            <option value="🌊 Nước làm mát">🌊 Nước làm mát</option>
+                            <option value="🛠️ Khác">🛠️ Khác</option>
+                        </select>
+                    </div>
                 </div>
 
+                <div id="fuel-fields" style="display: none;">
+                    <div class="mb-3">
+                        <span class="text-label">Số Lít Xăng (L)</span>
+                        <input type="number" step="0.01" class="form-control" id="liters" placeholder="Vd: 4.5">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="note" placeholder="Ghi chú (Tùy chọn)">
+                </div>
                 <div class="mb-3">
                     <input type="number" class="form-control" id="cost" placeholder="Chi phí (VND)" required>
                 </div>
 
-                <button type="submit" class="btn btn-accent w-100 py-2">Lưu Nhật Ký</button>
+                <button type="submit" class="btn btn-service w-100 py-2" id="submitBtn">Lưu Bảo Dưỡng</button>
             </form>
         </div>
     </div>
 
-    <h5 class="mb-3 fw-bold ps-2 border-start border-3 border-danger">Lịch Sử Bảo Dưỡng</h5>
-    <div id="logList">
-        </div>
+    <h6 class="fw-bold ps-2 border-start border-3 border-danger mb-3">Lịch Sử Gần Nhất</h6>
+    <div id="logList"></div>
 
 </div>
 
 <script>
-    const form = document.getElementById('serviceForm');
-    const logList = document.getElementById('logList');
-    const totalOdoDisplay = document.getElementById('totalOdo');
+    // --- ⚠️ DÁN URL CỦA BẠN VÀO ĐÂY ---
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzuLpPzdOXpsS7PlcKHjIgnFBRWZZBdJS8s119lgkKUBT_q-GroZt8SQVGGENukEeceQw/exec";
+
+    const OIL_LIMIT = 1500;
+    const GEAR_LIMIT = 5000;
+    let currentMode = 'service'; 
+    let logs = JSON.parse(localStorage.getItem('motoData')) || [];
+    
+    // Khởi tạo
     const dateInput = document.getElementById('date');
-
+    const odoInput = document.getElementById('odo');
     dateInput.valueAsDate = new Date();
-
-    let services = JSON.parse(localStorage.getItem('motoLogs')) || [];
-
-    function renderLogs() {
-        logList.innerHTML = '';
-        let maxOdo = 0;
-
-        services.sort((a, b) => b.odo - a.odo);
-
-        services.forEach((item, index) => {
-            if (parseInt(item.odo) > maxOdo) maxOdo = parseInt(item.odo);
-
-            const div = document.createElement('div');
-            div.className = 'history-item d-flex justify-content-between align-items-center';
-            div.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <div class="service-icon">${item.type.split(' ')[0]}</div>
-                    <div>
-                        <div class="fw-bold">${item.type.substring(3)}</div>
-                        <div class="small" style="color: #aaa;">📅 ${item.date} | 🛤️ ${parseInt(item.odo).toLocaleString()} km</div>
-                        <div class="small fst-italic text-secondary">${item.note}</div>
-                    </div>
-                </div>
-                <div class="text-end">
-                    <div class="fw-bold text-success">-${parseInt(item.cost).toLocaleString()} đ</div>
-                    <button class="btn btn-sm btn-link text-danger text-decoration-none p-0" onclick="deleteLog(${index})">Xóa</button>
-                </div>
-            `;
-            logList.appendChild(div);
-        });
-
-        totalOdoDisplay.innerText = maxOdo.toLocaleString();
+    
+    // Gợi ý ODO
+    if(logs.length > 0) {
+        const maxOdo = Math.max(...logs.map(l => parseInt(l.odo)));
+        odoInput.value = maxOdo; 
+        document.getElementById('totalOdo').innerText = maxOdo.toLocaleString();
     }
 
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const date = formatDate(document.getElementById('date').value);
-        const odo = document.getElementById('odo').value;
-        const type = document.getElementById('serviceType').value;
-        const note = document.getElementById('note').value;
-        const cost = document.getElementById('cost').value;
+    // --- HÀM CHUYỂN TAB ĐÃ SỬA LỖI ---
+    window.switchMode = (mode) => {
+        currentMode = mode;
+        const btn = document.getElementById('submitBtn');
+        const tabS = document.getElementById('tab-service');
+        const tabF = document.getElementById('tab-fuel');
 
-        services.push({ date, odo, type, note, cost });
-        localStorage.setItem('motoLogs', JSON.stringify(services));
-        renderLogs();
-        form.reset();
-        dateInput.valueAsDate = new Date();
-    });
+        // Reset style cứng đầu (nếu có)
+        btn.style.backgroundColor = ''; 
+        btn.style.color = '';
 
-    window.deleteLog = (index) => {
-        if(confirm('Bạn có chắc muốn xóa dòng này?')) {
-            services.splice(index, 1);
-            localStorage.setItem('motoLogs', JSON.stringify(services));
-            renderLogs();
+        if (mode === 'service') {
+            document.getElementById('service-fields').style.display = 'block';
+            document.getElementById('fuel-fields').style.display = 'none';
+            
+            // Xử lý nút bấm: Tháo Xanh, Lắp Đỏ
+            btn.innerText = 'Lưu Bảo Dưỡng';
+            btn.classList.remove('btn-fuel'); 
+            btn.classList.add('btn-service');
+            
+            // Xử lý Tab
+            tabS.className = 'nav-link active'; // Active mặc định (Đỏ)
+            tabF.className = 'nav-link';
+            
+        } else {
+            document.getElementById('service-fields').style.display = 'none';
+            document.getElementById('fuel-fields').style.display = 'block';
+            
+            // Xử lý nút bấm: Tháo Đỏ, Lắp Xanh
+            btn.innerText = 'Lưu Đổ Xăng';
+            btn.classList.remove('btn-service');
+            btn.classList.add('btn-fuel');
+            
+            // Xử lý Tab
+            tabS.className = 'nav-link';
+            tabF.className = 'nav-link active-fuel'; // Active Xanh
         }
     }
 
-    function formatDate(dateStr) {
-        if(!dateStr) return '';
-        const [y, m, d] = dateStr.split('-');
-        return `${d}/${m}/${y}`;
+    // --- XỬ LÝ GỬI DỮ LIỆU ---
+    document.getElementById('mainForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "⏳ Đang gửi..."; btn.disabled = true;
+
+        const data = {
+            appType: 'moto',
+            date: document.getElementById('date').value,
+            odo: document.getElementById('odo').value,
+            category: currentMode === 'service' ? 'Service' : 'Fuel',
+            item: currentMode === 'service' ? document.getElementById('serviceType').value : '⛽ Đổ Xăng',
+            liters: currentMode === 'fuel' ? document.getElementById('liters').value : '',
+            note: document.getElementById('note').value,
+            cost: document.getElementById('cost').value
+        };
+
+        fetch(SCRIPT_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(() => {
+            logs.push(data);
+            localStorage.setItem('motoData', JSON.stringify(logs));
+            renderUI();
+            alert("✅ Đã lưu thành công!");
+            
+            // Reset form thông minh (Giữ lại ODO, Ngày)
+            const savedOdo = document.getElementById('odo').value;
+            document.getElementById('note').value = '';
+            document.getElementById('cost').value = '';
+            if(currentMode==='fuel') document.getElementById('liters').value = '';
+            
+            btn.innerText = originalText; btn.disabled = false;
+        }).catch(err => {
+            alert("❌ Lỗi: " + err);
+            btn.innerText = originalText; btn.disabled = false;
+        });
+    });
+
+    // --- RENDER GIAO DIỆN ---
+    function renderUI() {
+        const list = document.getElementById('logList');
+        list.innerHTML = '';
+        logs.sort((a, b) => b.odo - a.odo);
+        
+        const currentOdo = logs.length > 0 ? parseInt(logs[0].odo) : 0;
+        document.getElementById('totalOdo').innerText = currentOdo.toLocaleString();
+
+        updateAlert(currentOdo, '🛢️ Thay nhớt máy', OIL_LIMIT, 'oilBar', 'oilStatus');
+        updateAlert(currentOdo, '⚙️ Thay nhớt láp', GEAR_LIMIT, 'gearBar', 'gearStatus');
+
+        logs.slice(0, 10).forEach(item => { 
+            const isFuel = item.category === 'Fuel';
+            const icon = isFuel ? '⛽' : item.item.split(' ')[0];
+            const title = isFuel ? `Đổ xăng (${item.liters}L)` : item.item.substring(3);
+            const colorClass = isFuel ? 'text-info' : 'text-success';
+            const bgIcon = isFuel ? '#004d40' : '#333';
+
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="icon-box" style="background: ${bgIcon}">${icon}</div>
+                    <div>
+                        <div class="fw-bold text-white">${title}</div>
+                        <div class="small" style="color: #aaa;">${formatDate(item.date)} | ${parseInt(item.odo).toLocaleString()} km</div>
+                        ${item.note ? `<div class="small fst-italic text-secondary">${item.note}</div>` : ''}
+                    </div>
+                </div>
+                <div class="fw-bold ${colorClass}">-${parseInt(item.cost).toLocaleString()} đ</div>
+            `;
+            list.appendChild(div);
+        });
     }
 
-    renderLogs();
+    function updateAlert(currentOdo, typeName, limit, barId, statusId) {
+        const lastService = logs.find(l => l.item === typeName);
+        let distance = lastService ? (currentOdo - parseInt(lastService.odo)) : currentOdo;
+        const percent = Math.min((distance / limit) * 100, 100);
+        const remain = limit - distance;
+        
+        const bar = document.getElementById(barId);
+        const status = document.getElementById(statusId);
+        bar.style.width = `${percent}%`;
+        
+        if (percent >= 100) {
+            bar.className = 'progress-bar bg-danger progress-bar-striped progress-bar-animated';
+            status.innerHTML = `<span class="text-danger fw-bold">QUÁ HẠN ${Math.abs(remain).toLocaleString()} KM!</span>`;
+        } else if (percent >= 80) {
+            bar.className = 'progress-bar bg-warning';
+            status.innerText = `Còn ${remain.toLocaleString()} km`;
+        } else {
+            bar.className = 'progress-bar bg-success';
+            status.innerText = `Đã đi ${distance.toLocaleString()} km`;
+        }
+    }
+
+    function formatDate(str) {
+        if(!str) return '';
+        const [y, m, d] = str.split('-');
+        return `${d}/${m}`;
+    }
+
+    renderUI();
 </script>
 
 </body>
