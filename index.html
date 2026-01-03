@@ -42,12 +42,10 @@
 
         /* TAB STYLE */
         .nav-pills .nav-link { color: #888; border-radius: 20px; padding: 8px 20px; cursor: pointer; }
-        /* Tab Active màu Đỏ (Mặc định) */
         .nav-pills .nav-link.active { background-color: var(--accent); color: white; font-weight: bold; }
-        /* Tab Active màu Xanh (Cho xăng) */
         .nav-pills .nav-link.active-fuel { background-color: var(--fuel) !important; color: white; font-weight: bold; }
 
-        /* BUTTON STYLE (QUAN TRỌNG: Tách 2 class màu riêng) */
+        /* BUTTON STYLE */
         .btn-service {
             background-color: var(--accent); color: white; font-weight: bold; border: none;
         }
@@ -189,26 +187,24 @@
     let currentMode = 'service'; 
     let logs = JSON.parse(localStorage.getItem('motoData')) || [];
     
-    // Khởi tạo
     const dateInput = document.getElementById('date');
     const odoInput = document.getElementById('odo');
     dateInput.valueAsDate = new Date();
     
-    // Gợi ý ODO
     if(logs.length > 0) {
         const maxOdo = Math.max(...logs.map(l => parseInt(l.odo)));
         odoInput.value = maxOdo; 
         document.getElementById('totalOdo').innerText = maxOdo.toLocaleString();
     }
 
-    // --- HÀM CHUYỂN TAB ĐÃ SỬA LỖI ---
+    // --- HÀM XỬ LÝ GIAO DIỆN (Đã sửa lỗi nút ẩn/hiện) ---
     window.switchMode = (mode) => {
         currentMode = mode;
         const btn = document.getElementById('submitBtn');
         const tabS = document.getElementById('tab-service');
         const tabF = document.getElementById('tab-fuel');
 
-        // Reset style cứng đầu (nếu có)
+        // Reset style
         btn.style.backgroundColor = ''; 
         btn.style.color = '';
 
@@ -216,31 +212,25 @@
             document.getElementById('service-fields').style.display = 'block';
             document.getElementById('fuel-fields').style.display = 'none';
             
-            // Xử lý nút bấm: Tháo Xanh, Lắp Đỏ
             btn.innerText = 'Lưu Bảo Dưỡng';
             btn.classList.remove('btn-fuel'); 
             btn.classList.add('btn-service');
             
-            // Xử lý Tab
-            tabS.className = 'nav-link active'; // Active mặc định (Đỏ)
+            tabS.className = 'nav-link active';
             tabF.className = 'nav-link';
-            
         } else {
             document.getElementById('service-fields').style.display = 'none';
             document.getElementById('fuel-fields').style.display = 'block';
             
-            // Xử lý nút bấm: Tháo Đỏ, Lắp Xanh
             btn.innerText = 'Lưu Đổ Xăng';
             btn.classList.remove('btn-service');
             btn.classList.add('btn-fuel');
             
-            // Xử lý Tab
             tabS.className = 'nav-link';
-            tabF.className = 'nav-link active-fuel'; // Active Xanh
+            tabF.className = 'nav-link active-fuel';
         }
     }
 
-    // --- XỬ LÝ GỬI DỮ LIỆU ---
     document.getElementById('mainForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
@@ -268,7 +258,6 @@
             renderUI();
             alert("✅ Đã lưu thành công!");
             
-            // Reset form thông minh (Giữ lại ODO, Ngày)
             const savedOdo = document.getElementById('odo').value;
             document.getElementById('note').value = '';
             document.getElementById('cost').value = '';
@@ -281,7 +270,15 @@
         });
     });
 
-    // --- RENDER GIAO DIỆN ---
+    // --- HÀM XÓA LỊCH SỬ (ĐÃ KHÔI PHỤC) ---
+    window.deleteLog = (index) => {
+        if(confirm("Bạn có chắc muốn xóa dòng này?")) {
+            logs.splice(index, 1);
+            localStorage.setItem('motoData', JSON.stringify(logs));
+            renderUI();
+        }
+    };
+
     function renderUI() {
         const list = document.getElementById('logList');
         list.innerHTML = '';
@@ -293,7 +290,7 @@
         updateAlert(currentOdo, '🛢️ Thay nhớt máy', OIL_LIMIT, 'oilBar', 'oilStatus');
         updateAlert(currentOdo, '⚙️ Thay nhớt láp', GEAR_LIMIT, 'gearBar', 'gearStatus');
 
-        logs.slice(0, 10).forEach(item => { 
+        logs.slice(0, 10).forEach((item, index) => { // Đã thêm biến index vào đây
             const isFuel = item.category === 'Fuel';
             const icon = isFuel ? '⛽' : item.item.split(' ')[0];
             const title = isFuel ? `Đổ xăng (${item.liters}L)` : item.item.substring(3);
@@ -311,7 +308,10 @@
                         ${item.note ? `<div class="small fst-italic text-secondary">${item.note}</div>` : ''}
                     </div>
                 </div>
-                <div class="fw-bold ${colorClass}">-${parseInt(item.cost).toLocaleString()} đ</div>
+                <div class="text-end">
+                    <div class="fw-bold ${colorClass}">-${parseInt(item.cost).toLocaleString()} đ</div>
+                    <button class="btn btn-sm btn-link text-danger text-decoration-none p-0 mt-1" onclick="deleteLog(${index})">Xóa</button>
+                </div>
             `;
             list.appendChild(div);
         });
