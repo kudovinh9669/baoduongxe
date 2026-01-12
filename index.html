@@ -350,8 +350,9 @@
     function fetchLogsFromSheet() {
         const list = document.getElementById('logList');
         list.innerHTML = '<div class="text-center p-3 small text-muted">⏳ Đang tải dữ liệu từ Sheet...</div>';
-
-        fetch(SCRIPT_URL)
+        
+        // Thêm ?type=moto vào đuôi URL
+        fetch(SCRIPT_URL + "?type=moto")
             .then(response => response.json())
             .then(data => {
                 if (data && data.length > 0) {
