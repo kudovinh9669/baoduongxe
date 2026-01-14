@@ -1,0 +1,15 @@
+{
+  "name": "Honda Vision Manager",
+  "short_name": "Vision Sport",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#d32f2f",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
