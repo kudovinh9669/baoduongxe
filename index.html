@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#d32f2f">
+    <link rel="apple-touch-icon" href="icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Honda Vision Manager</title>
@@ -372,6 +375,13 @@
     // Thay vì chỉ gọi renderUI(), ta gọi fetchLogsFromSheet() khi mở trang
     fetchLogsFromSheet();
 </script>
-
+<script>
+    // Đăng ký PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(() => console.log("✅ App đã sẵn sàng cài đặt!"))
+            .catch(err => console.log("❌ Lỗi PWA:", err));
+    }
+</script>
 </body>
 </html>
