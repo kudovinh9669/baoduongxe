@@ -106,7 +106,7 @@
         <h6 class="fw-bold mb-3">🚦 Tình trạng bảo dưỡng</h6>
         <div class="mb-3">
             <div class="d-flex justify-content-between small">
-                <span>🛢️ Nhớt máy (1.500km)</span><span id="oilStatus">...</span>
+                <span>🛢️ Nhớt máy (2.000km)</span><span id="oilStatus">...</span>
             </div>
             <div class="progress"><div class="progress-bar bg-success" id="oilBar" style="width: 0%"></div></div>
         </div>
@@ -186,7 +186,7 @@
     // --- ⚠️ DÁN URL CỦA BẠN VÀO ĐÂY ---
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzuLpPzdOXpsS7PlcKHjIgnFBRWZZBdJS8s119lgkKUBT_q-GroZt8SQVGGENukEeceQw/exec";
 
-    const OIL_LIMIT = 1500;
+    const OIL_LIMIT = 2000;
     const GEAR_LIMIT = 5000;
     let currentMode = 'service'; 
     let logs = JSON.parse(localStorage.getItem('motoData')) || [];
