@@ -283,43 +283,51 @@
         }
     };
 
-    function renderUI() {
-        const list = document.getElementById('logList');
-        list.innerHTML = '';
-        logs.sort((a, b) => b.odo - a.odo);
-        
-        const currentOdo = logs.length > 0 ? parseInt(logs[0].odo) : 0;
-        document.getElementById('totalOdo').innerText = currentOdo.toLocaleString();
+// Cập nhật hàm renderUI để xử lý tab và hiển thị thông minh
+function renderUI() {
+    const list = document.getElementById('logList');
+    list.innerHTML = '';
+    
+    // Luôn sắp xếp theo ODO mới nhất để lấy ODO Tổng
+    logs.sort((a, b) => b.odo - a.odo);
+    const currentOdo = logs.length > 0 ? parseInt(logs[0].odo) : 0;
+    document.getElementById('totalOdo').innerText = currentOdo.toLocaleString();
 
-        updateAlert(currentOdo, '🛢️ Thay nhớt máy', OIL_LIMIT, 'oilBar', 'oilStatus');
-        updateAlert(currentOdo, '⚙️ Thay nhớt láp', GEAR_LIMIT, 'gearBar', 'gearStatus');
+    // SỬA LỖI: Tìm trong TOÀN BỘ logs thay vì chỉ logs đã hiển thị
+    updateAlert(currentOdo, '🛢️ Thay nhớt máy', OIL_LIMIT, 'oilBar', 'oilStatus');
+    updateAlert(currentOdo, '⚙️ Thay nhớt láp', GEAR_LIMIT, 'gearBar', 'gearStatus');
 
-        logs.slice(0, 10).forEach((item, index) => { // Đã thêm biến index vào đây
-            const isFuel = item.category === 'Fuel';
-            const icon = isFuel ? '⛽' : item.item.split(' ')[0];
-            const title = isFuel ? `Đổ xăng (${item.liters}L)` : item.item.substring(3);
-            const colorClass = isFuel ? 'text-info' : 'text-success';
-            const bgIcon = isFuel ? '#004d40' : '#333';
+    // Hiển thị lịch sử: Ưu tiên hiện các mục Bảo dưỡng, sau đó mới đến Đổ xăng
+    const serviceLogs = logs.filter(l => l.category === 'Service');
+    const fuelLogs = logs.filter(l => l.category === 'Fuel').slice(0, 5); // Chỉ lấy 5 lần đổ xăng gần nhất
 
-            const div = document.createElement('div');
-            div.className = 'history-item';
-            div.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <div class="icon-box" style="background: ${bgIcon}">${icon}</div>
-                    <div>
-                        <div class="fw-bold text-white">${title}</div>
-                        <div class="small" style="color: #aaa;">${formatDate(item.date)} | ${parseInt(item.odo).toLocaleString()} km</div>
-                        ${item.note ? `<div class="small fst-italic text-secondary">${item.note}</div>` : ''}
-                    </div>
+    // Gộp lại để hiển thị (hoặc bạn có thể tạo 2 div riêng cho 2 loại)
+    const displayLogs = [...serviceLogs, ...fuelLogs].sort((a, b) => b.odo - a.odo);
+
+    displayLogs.forEach((item, index) => {
+        const isFuel = item.category === 'Fuel';
+        const icon = isFuel ? '⛽' : (item.item ? item.item.split(' ')[0] : '🛠️');
+        const title = isFuel ? `Đổ xăng (${item.liters}L)` : item.item.replace(/[^\w\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, '');
+        const colorClass = isFuel ? 'text-info' : 'text-success';
+        const bgIcon = isFuel ? '#004d40' : '#333';
+
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="icon-box" style="background: ${bgIcon}">${icon}</div>
+                <div>
+                    <div class="fw-bold text-white">${title}</div>
+                    <div class="small" style="color: #aaa;">${formatDate(item.date)} | ${parseInt(item.odo).toLocaleString()} km</div>
                 </div>
-                <div class="text-end">
-                    <div class="fw-bold ${colorClass}">-${parseInt(item.cost).toLocaleString()} đ</div>
-                    <button class="btn btn-sm btn-link text-danger text-decoration-none p-0 mt-1" onclick="deleteLog(${index})">Xóa</button>
-                </div>
-            `;
-            list.appendChild(div);
-        });
-    }
+            </div>
+            <div class="text-end">
+                <div class="fw-bold ${colorClass}">-${parseInt(item.cost).toLocaleString()} đ</div>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
 
     function updateAlert(currentOdo, typeName, limit, barId, statusId) {
         const lastService = logs.find(l => l.item === typeName);
