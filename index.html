@@ -177,7 +177,18 @@
         </div>
     </div>
 
-    <h6 class="fw-bold ps-2 border-start border-3 border-danger mb-3">Lịch Sử Gần Nhất</h6>
+    <h6 class="fw-bold ps-2 border-start border-3 border-danger mb-3 mt-4">Lịch Sử Hoạt Động</h6>
+    <ul class="nav nav-pills nav-fill mb-3" style="font-size: 0.9rem; background: var(--card-dark); border-radius: 8px; padding: 5px;">
+        <li class="nav-item">
+            <button class="nav-link text-secondary" id="htab-fuel" onclick="switchHistoryTab('fuel')" style="border-radius: 6px;">⛽ Xăng</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link active fw-bold text-white" id="htab-oil" onclick="switchHistoryTab('oil')" style="border-radius: 6px; background-color: var(--accent);">🛢️ Dầu nhớt</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link text-secondary" id="htab-other" onclick="switchHistoryTab('other')" style="border-radius: 6px;">🛠️ Khác</button>
+        </li>
+    </ul>
     <div id="logList"></div>
 
 </div>
@@ -284,30 +295,95 @@
     };
 
 // Cập nhật hàm renderUI để xử lý tab và hiển thị thông minh
+// --- LOGIC QUẢN LÝ TAB LỊCH SỬ ---
+let currentHistoryTab = 'oil'; // Mặc định mở tab Dầu nhớt
+
+window.switchHistoryTab = (tab) => {
+    currentHistoryTab = tab;
+    ['fuel', 'oil', 'other'].forEach(t => {
+        const btn = document.getElementById(`htab-${t}`);
+        if (t === tab) {
+            btn.className = 'nav-link active fw-bold text-white';
+            btn.style.backgroundColor = 'var(--accent)';
+        } else {
+            btn.className = 'nav-link text-secondary';
+            btn.style.backgroundColor = 'transparent';
+        }
+    });
+    renderHistoryList(); // Gọi lại hàm vẽ danh sách
+};
+
+// --- HÀM TỔNG HỢP HIỂN THỊ (ĐÃ FIX LỖI) ---
 function renderUI() {
-    const list = document.getElementById('logList');
-    list.innerHTML = '';
-    
-    // Luôn sắp xếp theo ODO mới nhất để lấy ODO Tổng
+    // 1. Luôn sắp xếp gốc theo ODO giảm dần
     logs.sort((a, b) => b.odo - a.odo);
     const currentOdo = logs.length > 0 ? parseInt(logs[0].odo) : 0;
     document.getElementById('totalOdo').innerText = currentOdo.toLocaleString();
 
-    // SỬA LỖI: Tìm trong TOÀN BỘ logs thay vì chỉ logs đã hiển thị
-    updateAlert(currentOdo, '🛢️ Thay nhớt máy', OIL_LIMIT, 'oilBar', 'oilStatus');
-    updateAlert(currentOdo, '⚙️ Thay nhớt láp', GEAR_LIMIT, 'gearBar', 'gearStatus');
+    // 2. Fix lỗi "Nhớt láp": Dùng .toLowerCase() và .includes() để bỏ qua sai lệch gõ chữ/emoji
+    updateAlert(currentOdo, 'nhớt máy', OIL_LIMIT, 'oilBar', 'oilStatus');
+    updateAlert(currentOdo, 'nhớt láp', GEAR_LIMIT, 'gearBar', 'gearStatus');
 
-    // Hiển thị lịch sử: Ưu tiên hiện các mục Bảo dưỡng, sau đó mới đến Đổ xăng
-    const serviceLogs = logs.filter(l => l.category === 'Service');
-    const fuelLogs = logs.filter(l => l.category === 'Fuel').slice(0, 5); // Chỉ lấy 5 lần đổ xăng gần nhất
+    // 3. Render danh sách theo tab được chọn
+    renderHistoryList();
+}
 
-    // Gộp lại để hiển thị (hoặc bạn có thể tạo 2 div riêng cho 2 loại)
-    const displayLogs = [...serviceLogs, ...fuelLogs].sort((a, b) => b.odo - a.odo);
+// --- HÀM TÍNH TOÁN THANH TRẠNG THÁI ---
+function updateAlert(currentOdo, keyword, limit, barId, statusId) {
+    // SỬA LỖI TẠI ĐÂY: Tìm kiếm thông minh hơn thay vì khớp chính xác 100%
+    const lastService = logs.find(l => l.item && l.item.toLowerCase().includes(keyword.toLowerCase()));
+    let distance = lastService ? (currentOdo - parseInt(lastService.odo)) : currentOdo;
+    const percent = Math.min((distance / limit) * 100, 100);
+    const remain = limit - distance;
+    
+    const bar = document.getElementById(barId);
+    const status = document.getElementById(statusId);
+    bar.style.width = `${percent}%`;
+    
+    if (percent >= 100) {
+        bar.className = 'progress-bar bg-danger progress-bar-striped progress-bar-animated';
+        status.innerHTML = `<span class="text-danger fw-bold">QUÁ HẠN ${Math.abs(remain).toLocaleString()} KM!</span>`;
+    } else if (percent >= 80) {
+        bar.className = 'progress-bar bg-warning';
+        status.innerText = `Còn ${remain.toLocaleString()} km`;
+    } else {
+        bar.className = 'progress-bar bg-success';
+        status.innerText = `Đã đi ${distance.toLocaleString()} km`;
+    }
+}
 
-    displayLogs.forEach((item, index) => {
+// --- HÀM VẼ DANH SÁCH THEO TAB ---
+function renderHistoryList() {
+    const list = document.getElementById('logList');
+    list.innerHTML = '';
+
+    // Lọc dữ liệu theo tab hiện tại
+    let displayLogs = [];
+    if (currentHistoryTab === 'fuel') {
+        displayLogs = logs.filter(l => l.category === 'Fuel');
+    } else if (currentHistoryTab === 'oil') {
+        displayLogs = logs.filter(l => l.item && (l.item.toLowerCase().includes('nhớt máy') || l.item.toLowerCase().includes('nhớt láp')));
+    } else if (currentHistoryTab === 'other') {
+        displayLogs = logs.filter(l => l.category === 'Service' && !(l.item && (l.item.toLowerCase().includes('nhớt máy') || l.item.toLowerCase().includes('nhớt láp'))));
+    }
+
+    // Nếu không có dữ liệu
+    if (displayLogs.length === 0) {
+        list.innerHTML = '<div class="text-center p-4 small text-muted">Chưa có dữ liệu trong mục này.</div>';
+        return;
+    }
+
+    displayLogs.forEach((item) => {
+        // QUAN TRỌNG: Lấy đúng vị trí (index) trong mảng gốc để chức năng Nút Xóa hoạt động đúng dòng
+        const originalIndex = logs.indexOf(item); 
+        
         const isFuel = item.category === 'Fuel';
         const icon = isFuel ? '⛽' : (item.item ? item.item.split(' ')[0] : '🛠️');
-        const title = isFuel ? `Đổ xăng (${item.liters}L)` : item.item.replace(/[^\w\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, '');
+        
+        // Loại bỏ emoji ở đầu để tên hiển thị sạch sẽ hơn
+        const rawItemName = item.item ? item.item.substring(item.item.indexOf(' ') + 1) : '';
+        const title = isFuel ? `Đổ xăng (${item.liters || 0}L)` : rawItemName;
+        
         const colorClass = isFuel ? 'text-info' : 'text-success';
         const bgIcon = isFuel ? '#004d40' : '#333';
 
@@ -319,37 +395,17 @@ function renderUI() {
                 <div>
                     <div class="fw-bold text-white">${title}</div>
                     <div class="small" style="color: #aaa;">${formatDate(item.date)} | ${parseInt(item.odo).toLocaleString()} km</div>
+                    ${item.note ? `<div class="small fst-italic" style="color: #888;">${item.note}</div>` : ''}
                 </div>
             </div>
             <div class="text-end">
-                <div class="fw-bold ${colorClass}">-${parseInt(item.cost).toLocaleString()} đ</div>
+                <div class="fw-bold ${colorClass}">-${parseInt(item.cost || 0).toLocaleString()} đ</div>
+                <button class="btn btn-sm btn-link text-danger text-decoration-none p-0 mt-1" onclick="deleteLog(${originalIndex})">Xóa</button>
             </div>
         `;
         list.appendChild(div);
     });
 }
-
-    function updateAlert(currentOdo, typeName, limit, barId, statusId) {
-        const lastService = logs.find(l => l.item === typeName);
-        let distance = lastService ? (currentOdo - parseInt(lastService.odo)) : currentOdo;
-        const percent = Math.min((distance / limit) * 100, 100);
-        const remain = limit - distance;
-        
-        const bar = document.getElementById(barId);
-        const status = document.getElementById(statusId);
-        bar.style.width = `${percent}%`;
-        
-        if (percent >= 100) {
-            bar.className = 'progress-bar bg-danger progress-bar-striped progress-bar-animated';
-            status.innerHTML = `<span class="text-danger fw-bold">QUÁ HẠN ${Math.abs(remain).toLocaleString()} KM!</span>`;
-        } else if (percent >= 80) {
-            bar.className = 'progress-bar bg-warning';
-            status.innerText = `Còn ${remain.toLocaleString()} km`;
-        } else {
-            bar.className = 'progress-bar bg-success';
-            status.innerText = `Đã đi ${distance.toLocaleString()} km`;
-        }
-    }
 
     function formatDate(str) {
         if(!str) return '';
