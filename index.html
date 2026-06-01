@@ -195,13 +195,17 @@
 <div class="alert-card p-3 mb-3">
     <h6 class="fw-bold mb-1 text-white">📈 Hiệu suất thực (Km/Lít)</h6>
     <small class="text-secondary d-block mb-3">Tính chính xác giữa các lần đổ đầy bình</small>
-    <canvas id="realFuelChart" height="180"></canvas>
+    <div style="position: relative; height: 180px; width: 100%;">
+        <canvas id="realFuelChart"></canvas>
+    </div>
 </div>
 
 <div class="alert-card p-3 mb-4">
     <h6 class="fw-bold mb-1 text-white">📊 Trung bình (5 lần gần nhất)</h6>
     <small class="text-secondary d-block mb-3">San phẳng sai số, xem xu hướng tiêu hao</small>
-    <canvas id="avgFuelChart" height="180"></canvas>
+    <div style="position: relative; height: 180px; width: 100%;">
+        <canvas id="avgFuelChart"></canvas>
+    </div>
 </div>
     <h6 class="fw-bold ps-2 border-start border-3 border-danger mb-3 mt-4">Lịch Sử Hoạt Động</h6>
     <ul class="nav nav-pills nav-fill mb-3" style="font-size: 0.9rem; background: var(--card-dark); border-radius: 8px; padding: 5px;">
