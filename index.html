@@ -231,65 +231,60 @@
     const dateInput = document.getElementById('date');
     const odoInput = document.getElementById('odo');
     dateInput.valueAsDate = new Date();
+
+    // --- 2 HÀM LÀM SẠCH DỮ LIỆU ĐỂ CHỐNG LỖI ---
+    function clean(str) {
+        return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function getOdoNum(val) {
+        if (!val) return 0;
+        return parseInt(val.toString().replace(/[\.,]/g, '').replace(/\D/g, '')) || 0;
+    }
     
     if(logs.length > 0) {
-        const maxOdo = Math.max(...logs.map(l => parseInt(l.odo)));
+        const maxOdo = Math.max(...logs.map(l => getOdoNum(l.odo)));
         odoInput.value = maxOdo; 
         document.getElementById('totalOdo').innerText = maxOdo.toLocaleString();
     }
 
-    // --- HÀM XỬ LÝ GIAO DIỆN (Đã sửa lỗi nút ẩn/hiện) ---
+    // --- HÀM XỬ LÝ GIAO DIỆN NÚT BẤM ---
     window.switchMode = (mode) => {
         currentMode = mode;
         const btn = document.getElementById('submitBtn');
         const tabS = document.getElementById('tab-service');
         const tabF = document.getElementById('tab-fuel');
 
-        // Reset style
         btn.style.backgroundColor = ''; 
         btn.style.color = '';
 
         if (mode === 'service') {
             document.getElementById('service-fields').style.display = 'block';
             document.getElementById('fuel-fields').style.display = 'none';
-            
             btn.innerText = 'Lưu Bảo Dưỡng';
-            btn.classList.remove('btn-fuel'); 
-            btn.classList.add('btn-service');
-            
+            btn.classList.replace('btn-fuel', 'btn-service');
             tabS.className = 'nav-link active';
             tabF.className = 'nav-link';
         } else {
             document.getElementById('service-fields').style.display = 'none';
             document.getElementById('fuel-fields').style.display = 'block';
-            
             btn.innerText = 'Lưu Đổ Xăng';
-            btn.classList.remove('btn-service');
-            btn.classList.add('btn-fuel');
-            
+            btn.classList.replace('btn-service', 'btn-fuel');
             tabS.className = 'nav-link';
             tabF.className = 'nav-link active-fuel';
         }
     }
 
+    // --- SỬA LỖI LỒNG CODE Ở ĐÂY ---
     document.getElementById('mainForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
         const originalText = btn.innerText;
         btn.innerText = "⏳ Đang gửi..."; btn.disabled = true;
 
-        const data = {
-            document.getElementById('mainForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('submitBtn');
-        const originalText = btn.innerText;
-        btn.innerText = "⏳ Đang gửi..."; btn.disabled = true;
-
-        // KIỂM TRA TRẠNG THÁI CHECKBOX
         const isFull = document.getElementById('isFullTank').checked;
         let itemName = currentMode === 'service' ? document.getElementById('serviceType').value : '⛽ Đổ Xăng';
         
-        // MẸO: Thêm chữ (Đầy) vào data lưu lên Sheet để nhận diện
         if (currentMode === 'fuel' && isFull) {
             itemName = '⛽ Đổ Xăng (Đầy)';
         }
@@ -299,12 +294,11 @@
             date: document.getElementById('date').value,
             odo: document.getElementById('odo').value,
             category: currentMode === 'service' ? 'Service' : 'Fuel',
-            item: itemName, // <-- Sử dụng biến itemName mới
+            item: itemName,
             liters: currentMode === 'fuel' ? document.getElementById('liters').value : '',
             note: document.getElementById('note').value,
             cost: document.getElementById('cost').value
         };
-        //... (Giữ nguyên đoạn fetch gửi lên Sheet phía dưới)
 
         fetch(SCRIPT_URL, {
             method: 'POST', mode: 'no-cors',
@@ -316,10 +310,12 @@
             renderUI();
             alert("✅ Đã lưu thành công!");
             
-            const savedOdo = document.getElementById('odo').value;
             document.getElementById('note').value = '';
             document.getElementById('cost').value = '';
-            if(currentMode==='fuel') document.getElementById('liters').value = '';
+            if(currentMode === 'fuel') {
+                document.getElementById('liters').value = '';
+                document.getElementById('isFullTank').checked = false; // Reset checkbox
+            }
             
             btn.innerText = originalText; btn.disabled = false;
         }).catch(err => {
@@ -328,7 +324,6 @@
         });
     });
 
-    // --- HÀM XÓA LỊCH SỬ (ĐÃ KHÔI PHỤC) ---
     window.deleteLog = (index) => {
         if(confirm("Bạn có chắc muốn xóa dòng này?")) {
             logs.splice(index, 1);
@@ -337,223 +332,206 @@
         }
     };
 
-// Cập nhật hàm renderUI để xử lý tab và hiển thị thông minh
-// --- LOGIC QUẢN LÝ TAB LỊCH SỬ ---
-let currentHistoryTab = 'oil'; // Mặc định mở tab Dầu nhớt
+    let currentHistoryTab = 'oil'; 
 
-window.switchHistoryTab = (tab) => {
-    currentHistoryTab = tab;
-    ['fuel', 'oil', 'other'].forEach(t => {
-        const btn = document.getElementById(`htab-${t}`);
-        if (t === tab) {
-            btn.className = 'nav-link active fw-bold text-white';
-            btn.style.backgroundColor = 'var(--accent)';
-        } else {
-            btn.className = 'nav-link text-secondary';
-            btn.style.backgroundColor = 'transparent';
-        }
-    });
-    renderHistoryList(); // Gọi lại hàm vẽ danh sách
-};
-let realChartInstance = null;
-let avgChartInstance = null;
+    window.switchHistoryTab = (tab) => {
+        currentHistoryTab = tab;
+        ['fuel', 'oil', 'other'].forEach(t => {
+            const btn = document.getElementById(`htab-${t}`);
+            if (t === tab) {
+                btn.className = 'nav-link active fw-bold text-white';
+                btn.style.backgroundColor = 'var(--accent)';
+            } else {
+                btn.className = 'nav-link text-secondary';
+                btn.style.backgroundColor = 'transparent';
+            }
+        });
+        renderHistoryList();
+    };
 
-function renderDashboard() {
-    // --- PHẦN 1: TÍNH TỔNG CHI PHÍ THÁNG HIỆN TẠI ---
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    let totalFuelCost = 0, totalServiceCost = 0;
+    // --- HÀM TỔNG HỢP HIỂN THỊ ---
+    function renderUI() {
+        logs.sort((a, b) => getOdoNum(b.odo) - getOdoNum(a.odo));
+        const currentOdo = logs.length > 0 ? getOdoNum(logs[0].odo) : 0;
+        document.getElementById('totalOdo').innerText = currentOdo.toLocaleString();
 
-    logs.forEach(log => {
-        if (!log.date) return;
-        const logDate = new Date(log.date);
-        if (logDate.getMonth() + 1 === currentMonth && logDate.getFullYear() === currentYear) {
-            const cost = parseInt(log.cost) || 0;
-            if (log.category === 'Fuel') totalFuelCost += cost;
-            else totalServiceCost += cost;
-        }
-    });
+        updateAlert(currentOdo, 'nhot may', OIL_LIMIT, 'oilBar', 'oilStatus');
+        updateAlert(currentOdo, 'nhot lap', GEAR_LIMIT, 'gearBar', 'gearStatus');
 
-    document.getElementById('monthLabel').innerText = `Chi phí T${currentMonth}/${currentYear}`;
-    document.getElementById('totalMonthCost').innerText = (totalFuelCost + totalServiceCost).toLocaleString() + ' đ';
-    document.getElementById('fuelMonthCost').innerText = totalFuelCost.toLocaleString() + ' đ';
-    document.getElementById('serviceMonthCost').innerText = totalServiceCost.toLocaleString() + ' đ';
+        renderHistoryList();
+        renderDashboard(); // Gọi chung ở đây để lúc nào data thay đổi đồ thị cũng đổi theo
+    }
 
-    // --- CHUẨN BỊ DỮ LIỆU XĂNG (Sắp xếp từ cũ tới mới) ---
-    const fuelLogs = logs.filter(l => l.category === 'Fuel').sort((a, b) => getOdoNum(a.odo) - getOdoNum(b.odo));
-    
-    // --- PHẦN 2: THUẬT TOÁN FULL-TO-FULL ---
-    const realLabels = [], realData = [];
-    let lastFullOdo = null, accumulatedLiters = 0;
+    let realChartInstance = null;
+    let avgChartInstance = null;
 
-    for (let i = 0; i < fuelLogs.length; i++) {
-        const log = fuelLogs[i];
-        const odo = getOdoNum(log.odo);
-        const liters = parseFloat(log.liters) || 0;
-        const isFull = log.item && log.item.includes('Đầy'); // Nhận diện qua chữ (Đầy) đã gắn lúc lưu
+    function renderDashboard() {
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+        let totalFuelCost = 0, totalServiceCost = 0;
 
-        if (isFull) {
-            if (lastFullOdo !== null) {
-                accumulatedLiters += liters; 
-                const distance = odo - lastFullOdo;
-                if (accumulatedLiters > 0) {
-                    const kml = (distance / accumulatedLiters).toFixed(1);
-                    if (kml > 20 && kml < 100) {
-                        realLabels.push(formatDate(log.date));
-                        realData.push(kml);
+        logs.forEach(log => {
+            if (!log.date) return;
+            const logDate = new Date(log.date);
+            if (logDate.getMonth() + 1 === currentMonth && logDate.getFullYear() === currentYear) {
+                const cost = parseInt(log.cost) || 0;
+                if (log.category === 'Fuel') totalFuelCost += cost;
+                else totalServiceCost += cost;
+            }
+        });
+
+        document.getElementById('monthLabel').innerText = `Chi phí T${currentMonth}/${currentYear}`;
+        document.getElementById('totalMonthCost').innerText = (totalFuelCost + totalServiceCost).toLocaleString() + ' đ';
+        document.getElementById('fuelMonthCost').innerText = totalFuelCost.toLocaleString() + ' đ';
+        document.getElementById('serviceMonthCost').innerText = totalServiceCost.toLocaleString() + ' đ';
+
+        const fuelLogs = logs.filter(l => l.category === 'Fuel').sort((a, b) => getOdoNum(a.odo) - getOdoNum(b.odo));
+        
+        const realLabels = [], realData = [];
+        let lastFullOdo = null, accumulatedLiters = 0;
+
+        for (let i = 0; i < fuelLogs.length; i++) {
+            const log = fuelLogs[i];
+            const odo = getOdoNum(log.odo);
+            const liters = parseFloat(log.liters) || 0;
+            const isFull = log.item && log.item.includes('Đầy'); 
+
+            if (isFull) {
+                if (lastFullOdo !== null) {
+                    accumulatedLiters += liters; 
+                    const distance = odo - lastFullOdo;
+                    if (accumulatedLiters > 0) {
+                        const kml = (distance / accumulatedLiters).toFixed(1);
+                        if (kml > 20 && kml < 100) {
+                            realLabels.push(formatDate(log.date));
+                            realData.push(kml);
+                        }
                     }
                 }
+                lastFullOdo = odo; 
+                accumulatedLiters = 0; 
+            } else {
+                if (lastFullOdo !== null) accumulatedLiters += liters; 
             }
-            lastFullOdo = odo; // Chốt cọc ODO mới
-            accumulatedLiters = 0; // Reset số lít cho chặng sau
+        }
+
+        const avgLabels = [], avgData = [];
+        const WINDOW = 5;
+
+        for (let i = WINDOW; i < fuelLogs.length; i++) {
+            const currentOdo = getOdoNum(fuelLogs[i].odo);
+            const startOdo = getOdoNum(fuelLogs[i - WINDOW].odo);
+            const distance = currentOdo - startOdo;
+            
+            let sumLiters = 0;
+            for (let j = i - WINDOW + 1; j <= i; j++) {
+                sumLiters += parseFloat(fuelLogs[j].liters) || 0;
+            }
+            
+            if (sumLiters > 0) {
+                const kml = (distance / sumLiters).toFixed(1);
+                if (kml > 20 && kml < 100) {
+                    avgLabels.push(formatDate(fuelLogs[i].date));
+                    avgData.push(kml);
+                }
+            }
+        }
+
+        if (realChartInstance) realChartInstance.destroy();
+        if (avgChartInstance) avgChartInstance.destroy();
+
+        const realCtx = document.getElementById('realFuelChart').getContext('2d');
+        realChartInstance = new Chart(realCtx, {
+            type: 'line',
+            data: {
+                labels: realLabels.slice(-10),
+                datasets: [{ label: 'Km/L', data: realData.slice(-10), borderColor: '#00897b', backgroundColor: 'rgba(0, 137, 123, 0.2)', borderWidth: 2, fill: true, tension: 0.3 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        const avgCtx = document.getElementById('avgFuelChart').getContext('2d');
+        avgChartInstance = new Chart(avgCtx, {
+            type: 'bar',
+            data: {
+                labels: avgLabels.slice(-10),
+                datasets: [{ label: 'Km/L Trung bình', data: avgData.slice(-10), backgroundColor: '#1976d2', borderRadius: 4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    function updateAlert(currentOdo, keyword, limit, barId, statusId) {
+        const lastService = logs.find(l => l.item && clean(l.item).includes(keyword));
+        let distance = lastService ? (currentOdo - getOdoNum(lastService.odo)) : currentOdo;
+        const percent = Math.min((distance / limit) * 100, 100);
+        const remain = limit - distance;
+        
+        const bar = document.getElementById(barId);
+        const status = document.getElementById(statusId);
+        bar.style.width = `${percent}%`;
+        
+        if (percent >= 100) {
+            bar.className = 'progress-bar bg-danger progress-bar-striped progress-bar-animated';
+            status.innerHTML = `<span class="text-danger fw-bold">QUÁ HẠN ${Math.abs(remain).toLocaleString()} KM!</span>`;
+        } else if (percent >= 80) {
+            bar.className = 'progress-bar bg-warning';
+            status.innerText = `Còn ${remain.toLocaleString()} km`;
         } else {
-            if (lastFullOdo !== null) accumulatedLiters += liters; // Đổ lẻ thì chỉ cộng dồn lít
+            bar.className = 'progress-bar bg-success';
+            status.innerText = `Đã đi ${distance.toLocaleString()} km`;
         }
     }
 
-    // --- PHẦN 3: THUẬT TOÁN TRUNG BÌNH 5 LẦN ĐỔ ---
-    const avgLabels = [], avgData = [];
-    const WINDOW = 5;
+    function renderHistoryList() {
+        const list = document.getElementById('logList');
+        list.innerHTML = '';
 
-    for (let i = WINDOW; i < fuelLogs.length; i++) {
-        const currentOdo = getOdoNum(fuelLogs[i].odo);
-        const startOdo = getOdoNum(fuelLogs[i - WINDOW].odo);
-        const distance = currentOdo - startOdo;
-        
-        let sumLiters = 0;
-        for (let j = i - WINDOW + 1; j <= i; j++) {
-            sumLiters += parseFloat(fuelLogs[j].liters) || 0;
+        let displayLogs = [];
+        if (currentHistoryTab === 'fuel') {
+            displayLogs = logs.filter(l => l.category === 'Fuel');
+        } else if (currentHistoryTab === 'oil') {
+            displayLogs = logs.filter(l => l.item && (clean(l.item).includes('nhot may') || clean(l.item).includes('nhot lap')));
+        } else if (currentHistoryTab === 'other') {
+            displayLogs = logs.filter(l => l.category === 'Service' && !(l.item && (clean(l.item).includes('nhot may') || clean(l.item).includes('nhot lap'))));
         }
-        
-        if (sumLiters > 0) {
-            const kml = (distance / sumLiters).toFixed(1);
-            if (kml > 20 && kml < 100) {
-                avgLabels.push(formatDate(fuelLogs[i].date));
-                avgData.push(kml);
-            }
+
+        if (displayLogs.length === 0) {
+            list.innerHTML = '<div class="text-center p-4 small text-muted">Chưa có dữ liệu trong mục này.</div>';
+            return;
         }
-    }
 
-    // --- PHẦN 4: VẼ 2 BIỂU ĐỒ RA MÀN HÌNH ---
-    if (realChartInstance) realChartInstance.destroy();
-    if (avgChartInstance) avgChartInstance.destroy();
+        displayLogs.forEach((item) => {
+            const originalIndex = logs.indexOf(item); 
+            const isFuel = item.category === 'Fuel';
+            const icon = isFuel ? '⛽' : (item.item ? item.item.split(' ')[0] : '🛠️');
+            
+            const rawItemName = item.item ? item.item.substring(item.item.indexOf(' ') + 1) : '';
+            const title = isFuel ? `Đổ xăng (${item.liters || 0}L)` : rawItemName;
+            
+            const colorClass = isFuel ? 'text-info' : 'text-success';
+            const bgIcon = isFuel ? '#004d40' : '#333';
 
-    // Biểu đồ Full-to-Full (Đường kẻ màu xanh)
-    const realCtx = document.getElementById('realFuelChart').getContext('2d');
-    realChartInstance = new Chart(realCtx, {
-        type: 'line',
-        data: {
-            labels: realLabels.slice(-10), // Chỉ hiện 10 chặng gần nhất cho đẹp
-            datasets: [{ label: 'Km/L', data: realData.slice(-10), borderColor: '#00897b', backgroundColor: 'rgba(0, 137, 123, 0.2)', borderWidth: 2, fill: true, tension: 0.3 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-
-    // Biểu đồ Trung Bình (Cột màu xanh biển)
-    const avgCtx = document.getElementById('avgFuelChart').getContext('2d');
-    avgChartInstance = new Chart(avgCtx, {
-        type: 'bar',
-        data: {
-            labels: avgLabels.slice(-10),
-            datasets: [{ label: 'Km/L Trung bình', data: avgData.slice(-10), backgroundColor: '#1976d2', borderRadius: 4 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-}
-// --- HÀM TỔNG HỢP HIỂN THỊ (ĐÃ FIX LỖI) ---
-function renderUI() {
-    // 1. Luôn sắp xếp gốc theo ODO giảm dần
-    logs.sort((a, b) => b.odo - a.odo);
-    const currentOdo = logs.length > 0 ? parseInt(logs[0].odo) : 0;
-    document.getElementById('totalOdo').innerText = currentOdo.toLocaleString();
-
-    // 2. Fix lỗi "Nhớt láp": Dùng .toLowerCase() và .includes() để bỏ qua sai lệch gõ chữ/emoji
-    updateAlert(currentOdo, 'nhớt máy', OIL_LIMIT, 'oilBar', 'oilStatus');
-    updateAlert(currentOdo, 'nhớt láp', GEAR_LIMIT, 'gearBar', 'gearStatus');
-
-    // 3. Render danh sách theo tab được chọn
-    renderHistoryList();
-}
-
-// --- HÀM TÍNH TOÁN THANH TRẠNG THÁI ---
-function updateAlert(currentOdo, keyword, limit, barId, statusId) {
-    // SỬA LỖI TẠI ĐÂY: Tìm kiếm thông minh hơn thay vì khớp chính xác 100%
-    const lastService = logs.find(l => l.item && l.item.toLowerCase().includes(keyword.toLowerCase()));
-    let distance = lastService ? (currentOdo - parseInt(lastService.odo)) : currentOdo;
-    const percent = Math.min((distance / limit) * 100, 100);
-    const remain = limit - distance;
-    
-    const bar = document.getElementById(barId);
-    const status = document.getElementById(statusId);
-    bar.style.width = `${percent}%`;
-    
-    if (percent >= 100) {
-        bar.className = 'progress-bar bg-danger progress-bar-striped progress-bar-animated';
-        status.innerHTML = `<span class="text-danger fw-bold">QUÁ HẠN ${Math.abs(remain).toLocaleString()} KM!</span>`;
-    } else if (percent >= 80) {
-        bar.className = 'progress-bar bg-warning';
-        status.innerText = `Còn ${remain.toLocaleString()} km`;
-    } else {
-        bar.className = 'progress-bar bg-success';
-        status.innerText = `Đã đi ${distance.toLocaleString()} km`;
-    }
-}
-
-// --- HÀM VẼ DANH SÁCH THEO TAB ---
-function renderHistoryList() {
-    const list = document.getElementById('logList');
-    list.innerHTML = '';
-
-    // Lọc dữ liệu theo tab hiện tại
-    let displayLogs = [];
-    if (currentHistoryTab === 'fuel') {
-        displayLogs = logs.filter(l => l.category === 'Fuel');
-    } else if (currentHistoryTab === 'oil') {
-        displayLogs = logs.filter(l => l.item && (l.item.toLowerCase().includes('nhớt máy') || l.item.toLowerCase().includes('nhớt láp')));
-    } else if (currentHistoryTab === 'other') {
-        displayLogs = logs.filter(l => l.category === 'Service' && !(l.item && (l.item.toLowerCase().includes('nhớt máy') || l.item.toLowerCase().includes('nhớt láp'))));
-    }
-
-    // Nếu không có dữ liệu
-    if (displayLogs.length === 0) {
-        list.innerHTML = '<div class="text-center p-4 small text-muted">Chưa có dữ liệu trong mục này.</div>';
-        return;
-    }
-
-    displayLogs.forEach((item) => {
-        // QUAN TRỌNG: Lấy đúng vị trí (index) trong mảng gốc để chức năng Nút Xóa hoạt động đúng dòng
-        const originalIndex = logs.indexOf(item); 
-        
-        const isFuel = item.category === 'Fuel';
-        const icon = isFuel ? '⛽' : (item.item ? item.item.split(' ')[0] : '🛠️');
-        
-        // Loại bỏ emoji ở đầu để tên hiển thị sạch sẽ hơn
-        const rawItemName = item.item ? item.item.substring(item.item.indexOf(' ') + 1) : '';
-        const title = isFuel ? `Đổ xăng (${item.liters || 0}L)` : rawItemName;
-        
-        const colorClass = isFuel ? 'text-info' : 'text-success';
-        const bgIcon = isFuel ? '#004d40' : '#333';
-
-        const div = document.createElement('div');
-        div.className = 'history-item';
-        div.innerHTML = `
-            <div class="d-flex align-items-center">
-                <div class="icon-box" style="background: ${bgIcon}">${icon}</div>
-                <div>
-                    <div class="fw-bold text-white">${title}</div>
-                    <div class="small" style="color: #aaa;">${formatDate(item.date)} | ${parseInt(item.odo).toLocaleString()} km</div>
-                    ${item.note ? `<div class="small fst-italic" style="color: #888;">${item.note}</div>` : ''}
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="icon-box" style="background: ${bgIcon}">${icon}</div>
+                    <div>
+                        <div class="fw-bold text-white">${title}</div>
+                        <div class="small" style="color: #aaa;">${formatDate(item.date)} | ${getOdoNum(item.odo).toLocaleString()} km</div>
+                        ${item.note ? `<div class="small fst-italic" style="color: #888;">${item.note}</div>` : ''}
+                    </div>
                 </div>
-            </div>
-            <div class="text-end">
-                <div class="fw-bold ${colorClass}">-${parseInt(item.cost || 0).toLocaleString()} đ</div>
-                <button class="btn btn-sm btn-link text-danger text-decoration-none p-0 mt-1" onclick="deleteLog(${originalIndex})">Xóa</button>
-            </div>
-        `;
-        list.appendChild(div);
-    });
-}
+                <div class="text-end">
+                    <div class="fw-bold ${colorClass}">-${parseInt(item.cost || 0).toLocaleString()} đ</div>
+                    <button class="btn btn-sm btn-link text-danger text-decoration-none p-0 mt-1" onclick="deleteLog(${originalIndex})">Xóa</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
 
     function formatDate(str) {
         if(!str) return '';
@@ -561,32 +539,28 @@ function renderHistoryList() {
         return `${d}/${m}`;
     }
 
-    renderUI();
-    renderDashboard();
-    // Hàm tải dữ liệu từ Google Sheet về Web
     function fetchLogsFromSheet() {
         const list = document.getElementById('logList');
         list.innerHTML = '<div class="text-center p-3 small text-muted">⏳ Đang tải dữ liệu từ Sheet...</div>';
         
-        // Thêm ?type=moto vào đuôi URL
         fetch(SCRIPT_URL + "?type=moto")
             .then(response => response.json())
             .then(data => {
                 if (data && data.length > 0) {
-                    logs = data; // Cập nhật danh sách logs bằng dữ liệu mới nhất
-                    localStorage.setItem('motoData', JSON.stringify(logs)); // Lưu đè vào local để dùng khi offline
-                    renderUI();
+                    logs = data; 
+                    localStorage.setItem('motoData', JSON.stringify(logs)); 
+                    renderUI(); // Đã bao gồm cả cập nhật history và biểu đồ trong này
                 } else {
                     list.innerHTML = '<div class="text-center p-3 small text-muted">Chưa có dữ liệu lịch sử.</div>';
                 }
             })
             .catch(err => {
                 console.error("Lỗi tải dữ liệu:", err);
-                renderUI(); // Nếu lỗi thì hiện dữ liệu cũ trong localStorage
+                renderUI(); 
             });
     }
 
-    // Thay vì chỉ gọi renderUI(), ta gọi fetchLogsFromSheet() khi mở trang
+    // Gọi hàm fetch khi mở trang
     fetchLogsFromSheet();
 </script>
 <script>
